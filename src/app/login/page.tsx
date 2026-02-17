@@ -1,11 +1,20 @@
 "use client";
 
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { useState, useEffect } from "react";
 
 export default function LoginPage() {
-  const supabase = getSupabaseClient()!;
+  const [supabase, setSupabase] = useState<any>(null);
+  
+  useEffect(() => {
+    // Only initialize on client side
+    const client = getSupabaseClient();
+    setSupabase(client);
+  }, []);
   
   const signInWithGoogle = async () => {
+    if (!supabase) return;
+    
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 

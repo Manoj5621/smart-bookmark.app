@@ -6,7 +6,12 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const supabase = getSupabaseClient()!;
+  const [supabase, setSupabase] = useState<any>(null);
+
+  useEffect(() => {
+    const client = getSupabaseClient();
+    setSupabase(client);
+  }, []);
 
   const [email, setEmail] = useState<string | null>(null);
   const [bookmarks, setBookmarks] = useState<any[]>([]);
@@ -45,7 +50,7 @@ export default function DashboardPage() {
             schema: "public",
             table: "bookmarks",
           },
-          (payload) => {
+          (payload: any) => {
             if (payload.new.user_id === user.id) {
               setBookmarks((prev) => [
                 payload.new,
