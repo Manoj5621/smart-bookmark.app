@@ -1,8 +1,9 @@
 "use client";
 
-export const dynamic = "force-dynamic";
 
 import { supabase } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const signInWithGoogle = async () => {
