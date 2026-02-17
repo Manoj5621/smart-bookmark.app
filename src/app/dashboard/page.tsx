@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
-/* ================= TYPES ================= */
-
 type Bookmark = {
   id: string;
   title: string;
@@ -17,8 +15,6 @@ type DeleteBroadcastPayload = {
   id: string;
 };
 
-/* ================= COMPONENT ================= */
-
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -26,14 +22,11 @@ export default function DashboardPage() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ================= INIT + REALTIME ================= */
-
   useEffect(() => {
     let dbChannel: any;
     let broadcastChannel: any;
 
     const init = async () => {
-      // 1️⃣ Auth check
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -45,7 +38,6 @@ export default function DashboardPage() {
 
       setEmail(user.email ?? null);
 
-      // 2️⃣ Initial fetch
       const { data } = await supabase
         .from("bookmarks")
         .select("*")
@@ -54,7 +46,6 @@ export default function DashboardPage() {
       if (data) setBookmarks(data);
       setLoading(false);
 
-      // 3️⃣ Realtime INSERT (Postgres)
       dbChannel = supabase
         .channel("bookmarks-db")
         .on(
@@ -75,7 +66,6 @@ export default function DashboardPage() {
         )
         .subscribe();
 
-      // 4️⃣ Realtime DELETE (Broadcast – reliable)
       broadcastChannel = supabase.channel("bookmarks-broadcast");
 
       broadcastChannel.on(
@@ -101,9 +91,6 @@ export default function DashboardPage() {
     };
   }, [router]);
 
-  /* ================= ACTIONS ================= */
-
-  // ➕ Add bookmark
   const addBookmark = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -124,18 +111,13 @@ export default function DashboardPage() {
     });
 
     form.reset();
-    // UI updates via realtime INSERT
   };
 
-  // ❌ Delete bookmark (optimistic + broadcast)
   const deleteBookmark = async (id: string) => {
-    // Optimistic UI
     setBookmarks((prev) => prev.filter((b) => b.id !== id));
 
-    // Delete from DB
     await supabase.from("bookmarks").delete().eq("id", id);
 
-    // Notify other tabs
     await supabase.channel("bookmarks-broadcast").send({
       type: "broadcast",
       event: "DELETE_BOOKMARK",
@@ -143,76 +125,116 @@ export default function DashboardPage() {
     });
   };
 
-  // 🚪 Logout
   const logout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
   };
-
-  /* ================= UI ================= */
 
   if (loading) {
     return <p className="p-6">Loading...</p>;
   }
 
   return (
-    <main className="p-6 space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <button
-          onClick={logout}
-          className="bg-red-600 text-white px-3 py-1 rounded"
-        >
-          Logout
-        </button>
-      </div>
-
-      <p className="text-green-600">Logged in as {email}</p>
-
-      {/* Add bookmark */}
-      <form onSubmit={addBookmark} className="space-x-2">
-        <input
-          name="title"
-          placeholder="Bookmark title"
-          required
-          className="border p-1"
-        />
-        <input
-          name="url"
-          placeholder="https://example.com"
-          required
-          className="border p-1"
-        />
-        <button type="submit" className="bg-black text-white px-3 py-1">
-          Add
-        </button>
-      </form>
-
-      {/* Bookmark list */}
-      <ul className="space-y-2">
-        {!loading && bookmarks.length === 0 && (
-          <li className="text-gray-500">No bookmarks yet</li>
-        )}
-
-        {bookmarks.map((b) => (
-          <li key={b.id} className="flex justify-between border p-2">
-            <a
-              href={b.url}
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              {b.title}
-            </a>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 bg-fixed bg-cover bg-center" style={{ backgroundImage: `url('./bookmark.png')` }}>
+      <div className="relative min-h-screen bg-black bg-opacity-40">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <header className="flex justify-between items-center mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-lg">SB</span>
+              </div>
+              <h1 className="text-4xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Smart Bookmarks
+              </h1>
+            </div>
             <button
-              onClick={() => deleteBookmark(b.id)}
-              className="text-red-600"
+              onClick={logout}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
             >
-              Delete
+              Logout
             </button>
-          </li>
-        ))}
-      </ul>
-    </main>
+          </header>
+
+          {/* User Info */}
+          <div className="mb-8">
+            <p className="text-gray-300 text-lg">
+              <span className="text-green-400">Logged in as:</span> {email}
+            </p>
+          </div>
+
+          {/* Add Bookmark Form */}
+          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-lg">
+            <h2 className="text-2xl font-bold text-white mb-4">Add New Bookmark</h2>
+            <form onSubmit={addBookmark} className="space-y-4">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
+                  Title
+                </label>
+                <input
+                  name="title"
+                  placeholder="Bookmark title"
+                  required
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                />
+              </div>
+              <div>
+                <label htmlFor="url" className="block text-sm font-medium text-gray-300 mb-2">
+                  URL
+                </label>
+                <input
+                  name="url"
+                  placeholder="https://example.com"
+                  required
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200">
+                </input>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
+              >
+                Add Bookmark
+              </button>
+            </form>
+          </div>
+
+          {/* Bookmarks List */}
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-white mb-6">Your Bookmarks</h2>
+            <div className="space-y-4">
+              {!loading && bookmarks.length === 0 && (
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 text-center">
+                  <p className="text-gray-400 text-lg">No bookmarks yet. Add your first bookmark above!</p>
+                </div>
+              )}
+
+              {bookmarks.map((b) => (
+                <div
+                  key={b.id}
+                  className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-white/30 transition-all duration-200"
+                >
+                  <div className="flex justify-between items-center">
+                    <a
+                      href={b.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 text-white text-lg font-medium hover:text-blue-400 transition-colors duration-200"
+                    >
+                      {b.title}
+                    </a>
+                    <button
+                      onClick={() => deleteBookmark(b.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
