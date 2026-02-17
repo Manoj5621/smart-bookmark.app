@@ -1,17 +1,16 @@
 "use client";
 
-
 import { supabase } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 export default function LoginPage() {
   const signInWithGoogle = async () => {
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // ✅ SAFE for both dev + prod
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
+        redirectTo: `${siteUrl}/dashboard`,
       },
     });
   };
@@ -36,7 +35,7 @@ export default function LoginPage() {
 
         <button
           onClick={signInWithGoogle}
-          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all hover:scale-105 flex items-center justify-center gap-3"
+          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all hover:scale-105"
         >
           Sign in with Google
         </button>
