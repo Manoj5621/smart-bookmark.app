@@ -1,27 +1,15 @@
 "use client";
 
-
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
-
-type Bookmark = {
-  id: string;
-  title: string;
-  url: string;
-  user_id: string;
-};
-
-type DeleteBroadcastPayload = {
-  id: string;
-};
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const supabase = getSupabaseClient();
 
   const [email, setEmail] = useState<string | null>(null);
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [bookmarks, setBookmarks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,7 +48,7 @@ export default function DashboardPage() {
           (payload) => {
             if (payload.new.user_id === user.id) {
               setBookmarks((prev) => [
-                payload.new as Bookmark,
+                payload.new,
                 ...prev,
               ]);
             }
@@ -74,7 +62,7 @@ export default function DashboardPage() {
         "broadcast",
         { event: "DELETE_BOOKMARK" },
         (wrapper: any) => {
-          const payload = wrapper.payload as DeleteBroadcastPayload;
+          const payload = wrapper.payload;
 
           setBookmarks((prev) =>
             prev.filter((b) => b.id !== payload.id)
@@ -106,11 +94,13 @@ export default function DashboardPage() {
 
     if (!user) return;
 
-    await supabase.from("bookmarks").insert({
-      title,
-      url,
-      user_id: user.id,
-    });
+    await supabase.from("bookmarks").insert([
+      {
+        title,
+        url,
+        user_id: user.id,
+      }
+    ] as any);
 
     form.reset();
   };
@@ -188,8 +178,8 @@ export default function DashboardPage() {
                   name="url"
                   placeholder="https://example.com"
                   required
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200">
-                </input>
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                />
               </div>
               <button
                 type="submit"
@@ -213,15 +203,13 @@ export default function DashboardPage() {
               {bookmarks.map((b) => (
                 <div
                   key={b.id}
-                  className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-white/30 transition-all duration-200"
-                >
+                  className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-white/30 transition-all duration-200">
                   <div className="flex justify-between items-center">
                     <a
                       href={b.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex-1 text-white text-lg font-medium hover:text-blue-400 transition-colors duration-200"
-                    >
+                      className="flex-1 text-white text-lg font-medium hover:text-blue-400 transition-colors duration-200">
                       {b.title}
                     </a>
                     <button

@@ -1,8 +1,10 @@
 "use client";
 
-import { supabase } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const supabase = getSupabaseClient();
+  
   const signInWithGoogle = async () => {
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
