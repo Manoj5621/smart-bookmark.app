@@ -5,11 +5,13 @@ import { useState, useEffect } from "react";
 
 export default function LoginPage() {
   const [supabase, setSupabase] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // Only initialize on client side
-    const client = getSupabaseClient();
-    setSupabase(client);
+    getSupabaseClient().then((client) => {
+      setSupabase(client);
+      setLoading(false);
+    });
   }, []);
   
   const signInWithGoogle = async () => {
@@ -25,6 +27,14 @@ export default function LoginPage() {
       },
     });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-100 via-orange-50 to-red-100 dark:from-yellow-900 dark:via-orange-900 dark:to-red-900">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-100 via-orange-50 to-red-100 dark:from-yellow-900 dark:via-orange-900 dark:to-red-900 animate-gradient">

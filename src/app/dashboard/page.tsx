@@ -9,8 +9,9 @@ export default function DashboardPage() {
   const [supabase, setSupabase] = useState<any>(null);
 
   useEffect(() => {
-    const client = getSupabaseClient();
-    setSupabase(client);
+    getSupabaseClient().then((client) => {
+      setSupabase(client);
+    });
   }, []);
 
   const [email, setEmail] = useState<string | null>(null);
