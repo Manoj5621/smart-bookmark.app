@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseClient } from "@/lib/supabase/client";
 
 export default function DashboardContent() {
   const router = useRouter();
@@ -12,9 +11,25 @@ export default function DashboardContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getSupabaseClient().then((client: any) => {
-      setSupabase(client);
-    });
+    // Dynamically import supabase only on client side
+    async function loadSupabase() {
+      if (typeof window === 'undefined') return;
+      
+      try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (supabaseUrl && supabaseAnonKey) {
+          const client = createClient(supabaseUrl, supabaseAnonKey);
+          setSupabase(client);
+        }
+      } catch (error) {
+        console.error('Failed to load Supabase:', error);
+      }
+    }
+    
+    loadSupabase();
   }, []);
 
   useEffect(() => {

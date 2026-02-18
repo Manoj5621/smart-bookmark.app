@@ -1,18 +1,34 @@
 "use client";
 
-import { getSupabaseClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 
-export default function LoginForm() {
+export default function LoginFormContent() {
   const [supabase, setSupabase] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    getSupabaseClient().then((client) => {
-      setSupabase(client);
-      setLoading(false);
-    });
+    // Dynamically import supabase only on client side
+    async function loadSupabase() {
+      if (typeof window === 'undefined') return;
+      
+      try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (supabaseUrl && supabaseAnonKey) {
+          const client = createClient(supabaseUrl, supabaseAnonKey);
+          setSupabase(client);
+        }
+      } catch (error) {
+        console.error('Failed to load Supabase:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadSupabase();
   }, []);
   
   const signInWithGoogle = async () => {
