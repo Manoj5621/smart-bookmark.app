@@ -1,114 +1,83 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+
+interface Bookmark {
+  id: number;
+  title: string;
+  url: string;
+  created_at: string;
+}
 
 export default function DashboardContent() {
   const router = useRouter();
-  const [supabase, setSupabase] = useState<any>(null);
   const [email, setEmail] = useState<string | null>(null);
-  const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Dynamically import supabase only on client side
-    async function loadSupabase() {
-      if (typeof window === 'undefined') return;
-      
+    // Check auth status via API route
+    async function checkAuth() {
       try {
-        const { createClient } = await import("@supabase/supabase-js");
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        
-        if (supabaseUrl && supabaseAnonKey) {
-          const client = createClient(supabaseUrl, supabaseAnonKey);
-          setSupabase(client);
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) {
+          router.push('/login');
+          return;
         }
+        
+        const data = await response.json();
+        setEmail(data.user?.email || null);
+        setBookmarks(data.bookmarks || []);
       } catch (error) {
-        console.error('Failed to load Supabase:', error);
+        console.error('Auth check failed:', error);
+        router.push('/login');
+      } finally {
+        setLoading(false);
       }
     }
     
-    loadSupabase();
-  }, []);
-
-  useEffect(() => {
-    if (!supabase) return;
-
-    let dbChannel: any;
-    let broadcastChannel: any;
-
-    const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      setEmail(user.email ?? null);
-
-      const { data } = await supabase
-        .from("bookmarks")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      setBookmarks(data || []);
-
-      dbChannel = supabase
-        .channel("public:bookmarks")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "bookmarks" },
-          (payload: any) => {
-            setBookmarks((prev: any[]) => [payload.new, ...prev]);
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "DELETE", schema: "public", table: "bookmarks" },
-          (payload: any) => {
-            setBookmarks((prev: any[]) =>
-              prev.filter((b: any) => b.id !== payload.old.id)
-            );
-          }
-        )
-        .subscribe();
-
-      broadcastChannel = supabase
-        .channel("broadcast")
-        .on(
-          "broadcast",
-          { event: "bookmark_deleted" },
-          (payload: any) => {
-            setBookmarks((prev: any[]) =>
-              prev.filter((b: any) => b.id !== payload.id)
-            );
-          }
-        )
-        .subscribe();
-    };
-
-    init();
-
-    return () => {
-      dbChannel?.unsubscribe();
-      broadcastChannel?.unsubscribe();
-    };
-  }, [supabase]);
+    checkAuth();
+  }, [router]);
 
   if (loading) {
     return <p>Loading...</p>;
   }
 
   return (
-    <div>
-      <h1>Welcome, {email}</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Welcome, {email}</h1>
+      
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-2">Add Bookmark</h2>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const form = e.target as HTMLFormElement;
+          const title = (form.elements.namedItem('title') as HTMLInputElement).value;
+          const url = (form.elements.namedItem('url') as HTMLInputElement).value;
+          
+          await fetch('/api/bookmarks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, url }),
+          });
+          
+          form.reset();
+        }} className="flex gap-2">
+          <input name="title" placeholder="Title" required className="border p-2 rounded" />
+          <input name="url" placeholder="URL" type="url" required className="border p-2 rounded" />
+          <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+        </form>
+      </div>
+
+      <h2 className="text-xl font-semibold mb-2">Your Bookmarks</h2>
       <ul>
-        {bookmarks.map((b: any) => (
-          <li key={b.id}>{b.title}</li>
+        {bookmarks.map((b: Bookmark) => (
+          <li key={b.id} className="border-b py-2">
+            <a href={b.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+              {b.title}
+            </a>
+          </li>
         ))}
       </ul>
     </div>
