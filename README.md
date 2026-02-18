@@ -6,7 +6,7 @@ Users can sign in using Google OAuth, add and delete bookmarks, and see updates 
 
 🚀 Live Demo
 
-👉 Live URL: https://<your-vercel-url>.vercel.app
+👉 Live URL: https:https://smart-bookmarkapp-sigma.vercel.app/login
 👉 GitHub Repo: https://github.com/Manoj5621/Smart-Bookmark-App.gitsmart-bookmark-app
 
 🛠 Tech Stack
