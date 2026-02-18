@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Force this route to be dynamic - never analyze at build time
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const provider = searchParams.get("provider") || "google";
